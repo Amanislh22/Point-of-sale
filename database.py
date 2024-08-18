@@ -1,9 +1,8 @@
-from fastapi import Depends, HTTPException , status
+from fastapi import Depends
 from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from Settings import setting
-
 
 DATABASE_URL = (
     f"postgresql://{setting.POSTGRES_USER}:{setting.PASSWORD_POSTGRES}"
@@ -22,8 +21,4 @@ def get_db():
     finally:
         db.close()
 
-
-
-
-import models
 

@@ -16,5 +16,6 @@ class Setting(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = 'allow'
 
 setting = Setting()
