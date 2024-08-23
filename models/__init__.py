@@ -11,3 +11,7 @@ from .customer import Customer
 from .session import Session
 from .order import Order
 from .order_line import OrderLine
+from .pricelist import Pricelist
+from .pricelistLine import PricelistLine
+from . program import Program
+from . program_item import ProgramItem
