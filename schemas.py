@@ -4,6 +4,7 @@ from typing import Dict, Optional, List, Union
 from datetime import datetime
 from pydantic import EmailStr
 from enums import Role,Gender,AccountStatus,ContractType,TokenStatus
+import enums
 from models.product import Product
 from enums.SessionStatus import SessionStatus
 
@@ -97,7 +98,6 @@ class BlacklistTokenOut(BaseModel):
 class JWTBlacklist(BaseModel):
     token:str
 
-
 class PagedResponse(OurBaseModelOut):
     page_number:Optional[int]=None
     page_size:Optional[int]=None
@@ -134,7 +134,6 @@ class ErrorOut(OurBaseModelOut):
     statement: Optional[str] = None
     created_at: Optional[datetime] = None
 
-
 class CustomerIn(OurBaseModel):
     name : str
     email : EmailStr
@@ -145,7 +144,6 @@ class CustomerOut(OurBaseModelOut):
 
 class CustomersOut(PagedResponse):
     list:Optional[List[CustomerOut]]=[]
-
 
 class ImportCustomerResponse(OurBaseModelOut):
     name : Optional[str] = None
@@ -198,7 +196,6 @@ class ImportProductsResponse(OurBaseModelOut):
     errors: Optional[str]=None
 
 class SessionOut (OurBaseModelOut):
-
     employee_id : Optional[int] =None
     openedAt : Optional[datetime] = None
     closedAt :  Optional[datetime] = None
@@ -218,6 +215,9 @@ class OrderIn(OurBaseModel):
     customer_email : EmailStr
     created_on : datetime
     total_price : Optional[float] = None
+    pricelist_name : Optional[str] = None
+    discount_code : Optional[str] =None
+
 
 class orderLineOut(OurBaseModelOut):
     products : Optional[List[productInput]] = []
@@ -235,8 +235,79 @@ class orderOut(OurBaseModelOut):
     customer : Optional[str]=None
     total : float
     lines : List[orderLineOut]
+
 class ordersOut(OurBaseModelOut):
      list: Optional[List[orderOut]] = []
+
+class PricelistIn(OurBaseModel):
+    name : str
+    description : str
+
+class pricelistOut(OurBaseModelOut):
+    name : Optional[str] = None
+    description : Optional[str] = None
+
+class pricelistsOut(PagedResponse):
+    list:Optional[List[pricelistOut]]=[]
+
+class PricelistLine(OurBaseModel):
+    pricelist_name : str
+    product_name : str
+    new_price : float
+    min_quantity : int
+    start_date : datetime
+    end_date : datetime
+
+class pricelistLineOut(OurBaseModelOut):
+    pricelist_name : Optional[str] = None
+    product_name :  Optional[str] = None
+    new_price :  Optional[float] = None
+    min_quantity :  Optional[int] = None
+    start_date :  Optional[datetime] = None
+    end_date : Optional[datetime] = None
+
+class pricelistlinesOut( PagedResponse):
+    list:Optional[List[pricelistLineOut]]=[]
+
+class ProgramIn(OurBaseModel):
+    name : str
+    description : str
+    program_type: enums.ProgramType
+    discount : Optional[float] = None
+    start_date : datetime
+    end_date : datetime
+    product_buy_id : Optional[int] =  None
+    product_get_id : Optional[int] = None
+    count : Optional[int] = None
+
+class ProgramOut(OurBaseModelOut):
+    name : Optional[str]= None
+    description : Optional[str]= None
+    program_type: Optional[enums.ProgramType] = None
+    discount : Optional[float] = None
+    start_date : Optional[datetime]= None
+    end_date : Optional[datetime]= None
+    product_buy_id : Optional[int] =  None
+    product_get_id : Optional[int] = None
+
+class ProgramsOut(PagedResponse):
+    list:Optional[List[ProgramOut]]
+
+class ProgramItemOut(OurBaseModelOut):
+    code : Optional[str]= None
+    code_status : Optional[enums.codeStatus] = None
+    program_id : Optional[int] = None
+    order_id : Optional[int] =None
+
+class ProgramItemsOut(OurBaseModelOut):
+    list: Optional[List[ProgramItemOut]] = None
+
+
+
+
+
+
+
 
 
 

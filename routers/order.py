@@ -1,9 +1,11 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends , status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from database import get_db
-from enums import Role
+from enums import Role, codeStatus
 from enums.SessionStatus import SessionStatus
+from error import error_keys, add_error, get_error_message
+import models
 from models.customer import Customer
 from models.employee import Employee
 from models.order import Order
@@ -13,6 +15,7 @@ from models.session import Session as modelSession
 import schemas
 from security import get_current_user
 import utils
+from sqlalchemy.exc import SQLAlchemyError
 
 router=APIRouter(
     prefix="/orders",
@@ -20,7 +23,7 @@ router=APIRouter(
 )
 
 @router.post("/add order" , response_model=schemas.orderLineOut)
-def add_order(order : schemas.OrderIn  ,current_user=Depends(get_current_user([Role.vendor, Role.super_user])),db: Session = Depends(get_db)):
+def add_order(order : schemas.OrderIn  ,current_user=Depends(get_current_user([Role.vendor, Role.super_user, Role.admin])),db: Session = Depends(get_db)):
     try:
         session_record = db.query(modelSession).filter_by(employee_id=current_user.id,session_status= SessionStatus.open).first()
         if not session_record:
@@ -68,6 +71,80 @@ def add_order(order : schemas.OrderIn  ,current_user=Depends(get_current_user([R
             customer_id = customer_record.id
         else :
             customer_id =None
+
+        if order.pricelist_name:
+            pricelist_query = db.query(models.Pricelist).filter_by(name=order.pricelist_name).first()
+            if not pricelist_query:
+                return schemas.orderLineOut(
+                message= "price list name not exist",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+            product_names = [product.name for product in order.products]
+            product_ids = db.query(models.Product.id).filter(models.Product.name.in_(product_names)).all()
+            product_ids = [product_id[0] for product_id in product_ids]
+            pricelist_lines_query = db.query(models.PricelistLine).filter_by(pricelist_id=pricelist_query.id).filter(
+                models.PricelistLine.product_id.in_(product_ids)
+            ).all()
+
+            for product, product_id in zip(order.products, product_ids):
+                pricelist_line = next((line for line in pricelist_lines_query if line.product_id == product_id), None)
+                if pricelist_line:
+                    if product.quantity >= pricelist_line.min_quantity:
+                        original_unit_price = product_dict[product.id].unit_price
+                        total_price -= original_unit_price * product.quantity
+                        total_price += pricelist_line.new_price * product.quantity
+
+        if order.discount_code:
+            program_item_query = db.query(models.ProgramItem).filter_by(code = order.discount_code).first()
+            if program_item_query.code_status != codeStatus.active:
+                return schemas.orderLineOut(
+                    message ="discount code inactive",
+                    status=status.HTTP_200_OK,
+                    products= products_out,
+                    total_price = total_price,
+                    )
+
+            program_query = db.query(models.Program).filter_by(id = program_item_query.program_id).first()
+            if program_query.discount:
+                discount_percent = program_query.discount
+                total_price= total_price - (discount_percent/100)*total_price
+            else :
+                product_to_buy_query = db.query(Product).filter_by(id=program_query.product_buy_id).first()
+                if not product_to_buy_query:
+                    return schemas.orderLineOut(
+                        message="Product to buy not found",
+                        status=status.HTTP_400_BAD_REQUEST,
+                        products=products_out,
+                        total_price=total_price,
+                    )
+
+                product_to_get_query = db.query(Product).filter_by(id=program_query.product_get_id).first()
+                if not product_to_get_query:
+                    return schemas.orderLineOut(
+                    message="Product to get not found",
+                    status=status.HTTP_400_BAD_REQUEST,
+                    products=products_out,
+                    total_price=total_price,
+    )
+
+                total_quantity_x = 0
+
+                for p in products:
+                    if p.id == product_to_buy_query.id:
+                        total_quantity_x += p.quantity
+
+                if program_query.count and program_query.count > 0:
+                    applicable_promotion_count = total_quantity_x // program_query.count
+                    product_to_get_query.quantity -= applicable_promotion_count
+                    products_out.append({
+                        "name": product_to_get_query.name,
+                        "quantity": applicable_promotion_count,
+                        "unit_price": product_to_get_query.unit_price,
+                        "id" : product_to_get_query.id,
+                    })
+
+            program_item_query.code_status = codeStatus.inactive
+
         new_order = Order(number = order.number,
                     customer_id = customer_id,
                     session_id=session_id,
@@ -80,6 +157,9 @@ def add_order(order : schemas.OrderIn  ,current_user=Depends(get_current_user([R
 
         order_lines_to_add=[]
         for product in order.products:
+                name = product.name
+                quantity = product.quantity
+                product_record = product_dict.get(product.id)
                 new_order_line = OrderLine(order_id = new_order.id,
                                 product_id =product_record.id,
                                 unit_price =product_record.unit_price,
@@ -90,12 +170,13 @@ def add_order(order : schemas.OrderIn  ,current_user=Depends(get_current_user([R
 
         db.add_all(order_lines_to_add)
         db.commit()
-    except Exception :
+    except SQLAlchemyError as e :
         db.rollback()
         return schemas.orderLineOut(
-            message= " db error occured",
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+            message=get_error_message(str(e.__dict__.get('orig', '')), error_keys),
+            )
+
 
     return schemas.orderLineOut(
         message =" order done",

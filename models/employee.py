@@ -1,4 +1,4 @@
-from enum import Enum as PyEnum
+from enum import Enum
 from pydantic import EmailStr
 from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String , Enum, UniqueConstraint
 from enums import AccountStatus, ContractType
