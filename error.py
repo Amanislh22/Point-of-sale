@@ -6,7 +6,7 @@ from fastapi import Depends, status
 
 error_keys = {
        "unique_email_constraint" : "this email is already used",
-       "unique_cnss_number" : "this cnss number is already exist"}
+       "unique_cnss_number" : "this cnss number already exists",}
 
 def add_error(e: SQLAlchemyError, db: Session = Depends(get_db)):
     error = models.Error(

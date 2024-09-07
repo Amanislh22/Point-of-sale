@@ -1,8 +1,11 @@
-from pydantic import BaseModel
-from typing import Dict, Optional, List
+import json
+from pydantic import BaseModel, model_validator
+from typing import Dict, Optional, List, Union
 from datetime import datetime
 from pydantic import EmailStr
 from enums import Role,Gender,AccountStatus,ContractType,TokenStatus
+from models.product import Product
+from enums.SessionStatus import SessionStatus
 
 class OurBaseModel(BaseModel):
     class Config:
@@ -94,6 +97,7 @@ class BlacklistTokenOut(BaseModel):
 class JWTBlacklist(BaseModel):
     token:str
 
+
 class PagedResponse(OurBaseModelOut):
     page_number:Optional[int]=None
     page_size:Optional[int]=None
@@ -129,3 +133,113 @@ class ErrorOut(OurBaseModelOut):
     params: Optional[str] = None
     statement: Optional[str] = None
     created_at: Optional[datetime] = None
+
+
+class CustomerIn(OurBaseModel):
+    name : str
+    email : EmailStr
+
+class CustomerOut(OurBaseModelOut):
+    name : Optional[str] = None
+    email : Optional[EmailStr] = None
+
+class CustomersOut(PagedResponse):
+    list:Optional[List[CustomerOut]]=[]
+
+
+class ImportCustomerResponse(OurBaseModelOut):
+    name : Optional[str] = None
+    email : Optional[EmailStr] = None
+    errors: Optional[str]=None
+
+class CategoryIn(OurBaseModel):
+    id : int
+    name : str
+    description : str
+    icon_name : str
+
+class categoryOut(OurBaseModelOut):
+    name :Optional[str] = None
+    description : Optional[str] = None
+    icon : Optional [str] = None
+
+class categoriesOut(PagedResponse):
+    list:Optional[List[categoryOut]]=[]
+
+class productIn(OurBaseModel):
+    id: int
+    name : str
+    category : str
+    description : Optional[str] = None
+    price : float
+    @model_validator(mode='before')
+    @classmethod
+    def validate_to_json(cls, value):
+        if isinstance(value, str):
+            return cls(**json.loads(value))
+        return value
+
+class productOut(OurBaseModelOut):
+    name : Optional[str]=None
+    category : Optional[str] =None
+    description : Optional[str] = None
+    price : Optional[float] = None
+    image_link : Optional[str] = None
+
+class productsOut(PagedResponse):
+    list: Optional[List[productOut]] = []
+
+class ImportProductsResponse(OurBaseModelOut):
+    name : Optional[str]=None
+    category : Optional[str] =None
+    description : Optional[str] = None
+    price : Optional[float] = None
+    image : Optional[str] = None
+    errors: Optional[str]=None
+
+class SessionOut (OurBaseModelOut):
+
+    employee_id : Optional[int] =None
+    openedAt : Optional[datetime] = None
+    closedAt :  Optional[datetime] = None
+    session_status : Optional[SessionStatus] = None
+
+class SessionsOut(OurBaseModelOut):
+    list: Optional[List[SessionOut]] = []
+
+class productInput(OurBaseModel):
+    id :int
+    name: str
+    quantity: int
+    unit_price: float
+class OrderIn(OurBaseModel):
+    products : List[productInput]
+    number : str
+    customer_email : EmailStr
+    created_on : datetime
+    total_price : Optional[float] = None
+
+class orderLineOut(OurBaseModelOut):
+    products : Optional[List[productInput]] = []
+    total_price : Optional[float] = None
+
+class orderlinesOut(OurBaseModelOut):
+    list :Optional[List[orderLineOut]] = []
+    total_price : float
+
+class orderOut(OurBaseModelOut):
+    session_id:int
+    date : datetime
+    receipt_number : str
+    employee : str
+    customer : Optional[str]=None
+    total : float
+    lines : List[orderLineOut]
+class ordersOut(OurBaseModelOut):
+     list: Optional[List[orderOut]] = []
+
+
+
+
+
+

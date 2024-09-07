@@ -5,3 +5,9 @@ from .changePassword import ChangePassword
 from .jWTBlacklist import JWTBlacklist
 from .company import Company
 from .error import Error
+from .category import Category
+from .product import Product
+from .customer import Customer
+from .session import Session
+from .order import Order
+from .order_line import OrderLine

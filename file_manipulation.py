@@ -8,6 +8,12 @@ from sqlalchemy import join
 from enums import ContractType, Gender, Role
 from enums.tokenStatus import TokenStatus
 from models import Employee
+from fastapi import Depends,status
+from numpy import genfromtxt
+from sqlalchemy import join
+from enums import  ContractType, Gender, Role
+from enums.tokenStatus import TokenStatus
+from models.employee import Employee
 from database import get_db
 from sqlalchemy.orm import Session
 import models
@@ -18,6 +24,7 @@ import schemas
 from send_mail import  send_email
 from sqlalchemy.exc import SQLAlchemyError
 from error import add_error
+from Settings import setting
 
 mandatory_unique_fields = {
     "email" : "email"
@@ -98,7 +105,7 @@ check_field = {
     "contract_type": (lambda employee, contract_type: ContractType.is_valid_enum_value(contract_type), "Contract type should be on of CDI,CDD,SIVP,Apprenti"),
     "gender": (lambda employee, gender: Gender.is_valid_enum_value(gender), "Gender should be on of Male,Female"),
     "roles": (lambda employee, roles: are_valid_jobs(roles), "Values should be admin ,vendor,inventory manager"),
-    "cnss_number": (lambda employee, cnss_number: is_valid_cnss(employee,cnss_number), "CNSS should be {8 digits}-{2 digits} and it's valid only for Cdi and Cdd")
+    "cnss_number": (lambda employee, cnss_number: is_valid_cnss(employee,cnss_number), "CNSS should be {8 digits}-{2 digits} and it's mandatory only for Cdi and Cdd"),
 }
 
 def validate_employee_input(employee: dict, employees_to_add: list=[]):
@@ -228,12 +235,14 @@ async def validate_fields_and_add_employees(employees: list, company_id :int,  f
         db.rollback()
         add_error(e,db)
         return schemas.EmployeeOut(
-            message='Database error occurred',
-            status=status.HTTP_400_BAD_REQUEST
+            message="Database error occurred",
+            status=status.HTTP_400_BAD_REQUEST,
         )
     return schemas.ImportEmployeeResponse(
             message= "employees added to db and mail sent ",
-            status = status.HTTP_200_OK )
+            status = status.HTTP_200_OK,)
+
+
 
 
 
