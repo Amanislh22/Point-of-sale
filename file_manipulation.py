@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 import re
 import uuid
-from fastapi import Depends, status
+from fastapi import Depends, HTTPException, status
 from numpy import genfromtxt
 from sqlalchemy import join
 from enums import ContractType, Gender, Role
@@ -20,6 +20,8 @@ import models
 from models.accountActivation import AccountActivation
 import models.company
 from models.employeeRole import EmployeeRole
+from models.product import Product
+from models.customer import Customer
 import schemas
 from send_mail import  send_email
 from sqlalchemy.exc import SQLAlchemyError
